@@ -42,9 +42,11 @@ func runPeer(args []string) error {
 		if err != nil {
 			return err
 		}
-		fmt.Printf("token  %s   (give it to %s; shown once)\n", added.Token, peer)
+		ok("Added %s as a peer of %s.", peer, agent)
+		fmt.Printf("token  %s\n", added.Token)
+		fmt.Printf("Give this token to %s. Copy it now: you won't be able to see it again.\n", peer)
 		if *token == "" {
-			fmt.Printf("next: toli peer token %s %s <the token %s gave you>\n", agent, peer, peer)
+			fmt.Printf("Next: when %s gives you its token, run toli peer token %s %s <token>\n", peer, agent, peer)
 		}
 		return nil
 	case cmd == "token" && len(args) == 3:
@@ -55,7 +57,7 @@ func runPeer(args []string) error {
 		if err := c.SetPeerToken(ctx, p.ID, args[2]); err != nil {
 			return err
 		}
-		fmt.Printf("token set for %s; toli peer list %s shows when it's connected\n", p.Name, args[0])
+		ok("Set %s's token for %s.", p.Name, args[0])
 		return nil
 	case cmd == "new-token" && len(args) == 2:
 		c, p, err := peerClient(ctx, args[0], args[1])
@@ -66,8 +68,9 @@ func runPeer(args []string) error {
 		if err != nil {
 			return err
 		}
-		fmt.Printf("token  %s   (give it to %s; shown once)\n", rotated.Token, p.Name)
-		fmt.Printf("the token %s uses now no longer works\n", p.Name)
+		ok("Made a new token for %s. The old one no longer works.", p.Name)
+		fmt.Printf("token  %s\n", rotated.Token)
+		fmt.Printf("Give it to %s. Copy it now: you won't be able to see it again.\n", p.Name)
 		return nil
 	case cmd == "remove" && len(args) >= 2:
 		yes, err := parseYes("peer remove", args[2:])
@@ -84,7 +87,7 @@ func runPeer(args []string) error {
 		if err := c.RemovePeer(ctx, p.ID); err != nil {
 			return err
 		}
-		fmt.Printf("removed %s\n", p.Name)
+		ok("Removed %s from %s's peers.", p.Name, args[0])
 		return nil
 	case cmd == "list" && len(args) == 1:
 		c, err := adminClient()

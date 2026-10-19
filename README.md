@@ -57,12 +57,23 @@ toli daemon status
 
 ## Agents on the same machine
 
-**1. Add the agents.** Each prints its MCP URL (shown once) and its card URL. Peers see the description when deciding what to send an agent.
+**1. Add the agents.** Peers see the description when deciding what to send an agent.
 
 ```sh
 toli agent add agent1 --description "Owns the web UI"
 toli agent add agent2 --description "Owns the API"
 ```
+
+Each prints its MCP URL and card URL:
+
+```
+✓ Added agent1.
+mcp_url   http://127.0.0.1:7420/mcp/toli_V2KQ7MXA…
+card_url  http://127.0.0.1:7422/a2a/agent1/.well-known/agent-card.json
+Copy the MCP URL now: you'll need it to connect the agent, and you won't be able to see it again.
+```
+
+You'll need each agent's MCP URL in step 3. (If you lose one, `toli agent new-token agent1` makes a new one.)
 
 **2. Pair them.** Each agent issues a token for the other, which the other uses when it calls it. Add agent2 as agent1's peer:
 
@@ -73,7 +84,10 @@ toli peer add agent1 agent2 <agent2_card_url>
 It prints the token agent2 will use:
 
 ```
-token  toli_V2KQ7MXA…   (give it to agent2; shown once)
+✓ Added agent2 as a peer of agent1.
+token  toli_P5RZ2DUA…
+Give this token to agent2. Copy it now: you won't be able to see it again.
+Next: when agent2 gives you its token, run toli peer token agent1 agent2 <token>
 ```
 
 Add agent1 as agent2's peer, with that token. It prints the token agent1 will use:

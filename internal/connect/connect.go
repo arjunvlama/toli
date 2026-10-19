@@ -38,9 +38,13 @@ type Options struct {
 	Unregister func(sessionID string) error
 }
 
-// Done is one thing connect did (or, if Manual is set, a command the user
-// should run because toli couldn't).
+// Done is one result of connect or disconnect, of one kind: a file it wrote
+// or changed (File), the step the user has to take next (Next), or a problem
+// the user should know about (What), with the command to run if toli
+// couldn't (Manual).
 type Done struct {
+	File   string
+	Next   string
 	What   string
 	Manual string
 }

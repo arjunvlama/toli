@@ -39,28 +39,35 @@ func runService(verb string, args []string) error {
 		if err := m.Install(); err != nil {
 			return err
 		}
-		_, where := m.Installed()
-		fmt.Printf("Installed: %s\nThe daemon starts at login and restarts if it stops.\nlogs: %s\n", where, m.Logs())
+		ok("Installed the toli daemon. It starts at login and restarts if it stops.")
+		fmt.Println("Logs: " + m.Logs())
 	case "uninstall":
 		if err := m.Uninstall(); err != nil {
 			return err
 		}
-		fmt.Println("Uninstalled; the daemon is stopped.")
+		ok("Uninstalled the toli daemon.")
 	case "start":
-		return m.Start()
+		if err := m.Start(); err != nil {
+			return err
+		}
+		ok("Started the toli daemon.")
 	case "stop":
-		return m.Stop()
+		if err := m.Stop(); err != nil {
+			return err
+		}
+		ok("Stopped the toli daemon.")
 	case "restart":
-		return m.Restart()
+		if err := m.Restart(); err != nil {
+			return err
+		}
+		ok("Restarted the toli daemon.")
 	case "status":
 		installed, where := m.Installed()
+		inst := "no (run toli daemon install)"
 		if installed {
-			fmt.Println("installed: " + where)
-		} else {
-			fmt.Println("installed: no (toli daemon install)")
+			inst = "yes (" + where + ")"
 		}
-		fmt.Println("running: " + listening())
-		fmt.Println("logs: " + m.Logs())
+		fmt.Printf("installed  %s\nrunning    %s\nlogs       %s\n", inst, listening(), m.Logs())
 	}
 	return nil
 }

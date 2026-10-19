@@ -38,7 +38,7 @@ func (c codex) connect(o Options) ([]Done, error) {
 	if err := setTOMLTable(config, "mcp_servers.toli", server); err != nil {
 		return nil, err
 	}
-	done = append(done, Done{What: "MCP server toli (tools approved) in " + config})
+	done = append(done, Done{File: config})
 
 	hooks := map[string]string{
 		"SessionStart": shellJoin([]string{o.Toli, "hook", "codex", "session-start", o.MCPURL}),
@@ -47,7 +47,7 @@ func (c codex) connect(o Options) ([]Done, error) {
 	if err := setHooks(hooksFile, hooks, nil); err != nil {
 		return nil, err
 	}
-	done = append(done, Done{What: "hooks in " + hooksFile})
+	done = append(done, Done{File: hooksFile})
 
 	if o.Scope == Project {
 		for _, f := range []string{config, hooksFile} {
@@ -56,13 +56,12 @@ func (c codex) connect(o Options) ([]Done, error) {
 				return nil, err
 			}
 			if ignored {
-				done = append(done, Done{What: "added " + filepath.Base(f) + " to .gitignore"})
+				done = append(done, Done{File: ".gitignore"})
 			}
 		}
 	}
 	return append(done,
-		Done{What: "next: run codex here; trust the folder if it asks, and approve toli's hooks in /hooks"},
-		Done{What: "running sessions: restart them with `codex resume --last` to connect them"},
+		Done{Next: "start Codex (or restart a running session with `codex resume --last`), and when it asks, trust the folder and toli's hooks."},
 	), nil
 }
 
@@ -77,8 +76,8 @@ func (c codex) disconnect(o Options) ([]Done, error) {
 		return nil, err
 	}
 	return []Done{
-		{What: "removed MCP server toli from " + config},
-		{What: "removed toli's hooks from " + hooksFile},
-		{What: "running sessions stay connected until they restart"},
+		{File: config},
+		{File: hooksFile},
+		{Next: "restart running sessions; they stay connected until then."},
 	}, nil
 }

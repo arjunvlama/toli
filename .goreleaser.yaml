@@ -29,8 +29,15 @@ checksum:
 changelog:
   sort: asc
 
+# A tag like v0.1.1-rc.1 is published as a pre-release: install.sh and
+# install.ps1 skip it unless asked for it (TOLI_VERSION), and Homebrew isn't
+# updated.
+release:
+  prerelease: auto
+
 homebrew_casks:
   - name: toli
+    skip_upload: auto
     binaries: [toli]
     homepage: https://github.com/arjunvlama/toli
     description: The telephone for AI agents

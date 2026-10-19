@@ -102,7 +102,11 @@ func runTask(args []string) error {
 		if err != nil {
 			return err
 		}
-		fmt.Printf("%s: %s\n", shortID(t.ID), state(t.State))
+		if s := state(t.State); s == "CANCELED" {
+			ok("Canceled task %s.", shortID(t.ID))
+		} else {
+			ok("Asked to cancel task %s; it's %s.", shortID(t.ID), s)
+		}
 		return nil
 	}
 	return errors.New(taskUsage)

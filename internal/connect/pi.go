@@ -45,7 +45,7 @@ func (p pi) connect(o Options) ([]Done, error) {
 	if err := os.WriteFile(extension, []byte(src), 0o600); err != nil {
 		return nil, err
 	}
-	done := []Done{{What: "extension (MCP server, session, notifications) in " + extension}}
+	done := []Done{{File: extension}}
 
 	if o.Scope == Project {
 		ignored, err := gitIgnore(o, extension)
@@ -53,10 +53,10 @@ func (p pi) connect(o Options) ([]Done, error) {
 			return nil, err
 		}
 		if ignored {
-			done = append(done, Done{What: "added it to .gitignore"})
+			done = append(done, Done{File: ".gitignore"})
 		}
 	}
-	return append(done, Done{What: "next: start pi here (trust the folder if it asks), or /reload in running sessions"}), nil
+	return append(done, Done{Next: "start pi (trust the folder if it asks), or run /reload in a running session."}), nil
 }
 
 // disconnect deletes toli's extension.
@@ -66,7 +66,7 @@ func (p pi) disconnect(o Options) ([]Done, error) {
 		return nil, err
 	}
 	return []Done{
-		{What: "deleted " + extension},
-		{What: "running sessions stay connected until /reload or a restart"},
+		{File: extension},
+		{Next: "run /reload in running sessions, or restart them; they stay connected until then."},
 	}, nil
 }

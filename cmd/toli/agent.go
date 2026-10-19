@@ -70,18 +70,19 @@ func runAgent(args []string) error {
 			if err := c.UpdateAgent(ctx, name, api.UpdateAgentRequest{Description: *desc, Skills: skills}); err != nil {
 				return err
 			}
-			fmt.Printf("updated %s\n", name)
+			ok("Updated %s.", name)
 			return nil
 		}
 		added, err := c.AddAgent(ctx, api.AddAgentRequest{Name: name, Description: *desc, Skills: skills})
 		if err != nil {
 			return err
 		}
-		fmt.Printf("mcp_url   http://%s/mcp/%s   (contains the agent's token; shown once)\n", mcpAddr(), added.Token)
+		ok("Added %s.", added.Name)
+		fmt.Printf("mcp_url   http://%s/mcp/%s\n", mcpAddr(), added.Token)
 		if a, err := findAgent(ctx, c, added.Name); err == nil && a.ShareURL != "" {
 			fmt.Printf("card_url  %s\n", a.ShareURL)
 		}
-		fmt.Println("next: toli connect <harness> <mcp_url>")
+		fmt.Println("Copy the MCP URL now: you'll need it to connect the agent, and you won't be able to see it again.")
 		return nil
 	case cmd == "new-token" && len(args) == 1:
 		c, err := adminClient()
@@ -92,8 +93,10 @@ func runAgent(args []string) error {
 		if err != nil {
 			return err
 		}
-		fmt.Printf("mcp_url   http://%s/mcp/%s   (contains the agent's token; shown once)\n", mcpAddr(), rotated.Token)
-		fmt.Println("the old MCP URL no longer works: run toli connect again with this one")
+		ok("Made a new MCP URL for %s. The old one no longer works.", args[0])
+		fmt.Printf("mcp_url   http://%s/mcp/%s\n", mcpAddr(), rotated.Token)
+		fmt.Println("Copy it now: you won't be able to see it again.")
+		fmt.Println("Next: run toli connect again with it.")
 		return nil
 	case (cmd == "disable" || cmd == "enable") && len(args) == 1:
 		c, err := adminClient()
@@ -107,7 +110,7 @@ func runAgent(args []string) error {
 		if err := do(ctx, args[0]); err != nil {
 			return err
 		}
-		fmt.Printf("%sd %s\n", cmd, args[0])
+		ok("%sd %s.", strings.ToUpper(cmd[:1])+cmd[1:], args[0])
 		return nil
 	case cmd == "remove" && len(args) >= 1:
 		yes, err := parseYes("agent remove", args[1:])
@@ -125,7 +128,7 @@ func runAgent(args []string) error {
 		if err := c.RemoveAgent(ctx, name); err != nil {
 			return err
 		}
-		fmt.Printf("removed %s\n", name)
+		ok("Removed %s.", name)
 		return nil
 	case cmd == "notify" && len(args) >= 1:
 		fs := flag.NewFlagSet("agent notify", flag.ContinueOnError)
@@ -162,14 +165,17 @@ func runAgent(args []string) error {
 		same := notifyText(&api.NotifyInfo{Command: *command, Webhook: api.HostOnly(*webhook)}) == notifyText(before.Notify)
 		switch was := notifyText(before.Notify); {
 		case *none && before.Notify != nil:
-			fmt.Printf("notify   none   (was: %s)\n", was)
-		case !*none && before.Notify != nil && !same:
-			fmt.Printf("notify   %s   (replaced: %s)\n", after, was)
+			ok("%s's notifications aren't pushed any more (they went to %s).", before.Name, was)
+		case *none:
+			ok("%s's notifications aren't pushed.", before.Name)
+		case before.Notify != nil && !same:
+			ok("%s's notifications now go to %s (replacing %s).", before.Name, after, was)
 		default:
-			fmt.Printf("notify   %s\n", after)
+			ok("%s's notifications now go to %s.", before.Name, after)
 		}
 		if set.Secret != "" {
-			fmt.Printf("secret   %s   (your webhook checks it as a Bearer token; shown once)\n", set.Secret)
+			fmt.Printf("secret  %s\n", set.Secret)
+			fmt.Println("Your webhook gets it as a Bearer token. Copy it now: you won't be able to see it again.")
 		}
 		return nil
 	case cmd == "list" && len(args) == 0:

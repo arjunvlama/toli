@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"io"
 	"os"
 )
 
@@ -62,10 +63,12 @@ func main() {
 		err = runPeer(os.Args[2:])
 	case os.Args[1] == "task":
 		err = runTask(os.Args[2:])
+	case os.Args[1] == "help" || os.Args[1] == "--help" || os.Args[1] == "-h":
+		usage(os.Stdout)
 	case os.Args[1] == "version" || os.Args[1] == "--version":
 		fmt.Println("toli", version())
 	default:
-		usage()
+		usage(os.Stderr)
 		os.Exit(2)
 	}
 	if err != nil {
@@ -74,8 +77,10 @@ func main() {
 	}
 }
 
-func usage() {
-	fmt.Fprintln(os.Stderr, `usage:
+// usage lists the commands: on stdout when asked for, on stderr after a
+// mistake.
+func usage(w io.Writer) {
+	fmt.Fprintln(w, `usage:
   toli                                                    open the TUI (daemon must be running)
   toli daemon [--mcp-listen ADDR] [--admin-listen ADDR]   run the daemon (in the foreground)
               [--a2a-listen ADDR] [--public-url URL]
@@ -100,4 +105,9 @@ func usage() {
   toli task cancel AGENT ID                               cancel a task AGENT delegated
   toli hook HARNESS EVENT MCP_URL                         run by a coding agent's hooks (see toli connect)
   toli version                                            toli's version`)
+}
+
+// ok reports that a command did what was asked: one line, starting with ✓.
+func ok(format string, args ...any) {
+	fmt.Printf("✓ "+format+"\n", args...)
 }

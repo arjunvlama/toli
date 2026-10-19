@@ -445,7 +445,7 @@ func TestCLI(t *testing.T) {
 	if out := da.cli(t, "task", "show", "frontend", short); !strings.Contains(out, id) || !strings.Contains(out, "Add a /stats endpoint") {
 		t.Errorf("task show:\n%s", out)
 	}
-	if out := da.cli(t, "task", "cancel", "frontend", short); !strings.Contains(out, "CANCELED") {
+	if out := da.cli(t, "task", "cancel", "frontend", short); !strings.Contains(out, "✓ Canceled task "+short+".") {
 		t.Errorf("task cancel: %s", out)
 	}
 
@@ -471,16 +471,16 @@ func TestCLI(t *testing.T) {
 		t.Fatal(err)
 	}
 	out = db.cli(t, "agent", "notify", "backend", "--webhook", "https://example.com/toli")
-	if field(t, out, "notify") != "webhook" || !strings.HasPrefix(field(t, out, "secret"), "toli_") {
+	if !strings.Contains(out, "✓ backend's notifications now go to webhook https://example.com/toli.") || !strings.HasPrefix(field(t, out, "secret"), "toli_") {
 		t.Errorf("notify --webhook:\n%s", out)
 	}
-	if out := db.cli(t, "agent", "notify", "backend", "--command", wake); !strings.Contains(out, "(replaced: webhook https://example.com/…)") {
+	if out := db.cli(t, "agent", "notify", "backend", "--command", wake); !strings.Contains(out, "(replacing webhook https://example.com/…)") {
 		t.Errorf("notify --command:\n%s", out)
 	}
 	if out := db.cli(t, "agent", "list"); !strings.Contains(out, "command "+wake) {
 		t.Errorf("agent list:\n%s", out)
 	}
-	if out := db.cli(t, "agent", "notify", "backend", "--none"); !strings.Contains(out, "(was: command "+wake+")") {
+	if out := db.cli(t, "agent", "notify", "backend", "--none"); !strings.Contains(out, "(they went to command "+wake+")") {
 		t.Errorf("notify --none:\n%s", out)
 	}
 }

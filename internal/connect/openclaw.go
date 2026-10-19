@@ -27,15 +27,12 @@ func (openclaw) connect(o Options) ([]Done, error) {
 	case err != nil:
 		return nil, fmt.Errorf("openclaw mcp add: %w", err)
 	default:
-		done = append(done, Done{What: "MCP server toli in ~/.openclaw/openclaw.json"})
+		done = append(done, Done{File: "~/.openclaw/openclaw.json"})
 	}
 	if err := o.Register("openclaw", openclawMain); err != nil {
 		return nil, fmt.Errorf("register %s: %w", openclawMain, err)
 	}
-	return append(done,
-		Done{What: "registered OpenClaw's main session (" + openclawMain + ")"},
-		Done{What: "with several OpenClaw agents: toli's tools reach all of them (same toli agent); notifications go to main"},
-	), nil
+	return done, nil
 }
 
 // disconnect removes the MCP server and unregisters the main
@@ -45,16 +42,14 @@ func (openclaw) disconnect(o Options) ([]Done, error) {
 	remove := []string{"mcp", "unset", "toli"}
 	switch err := o.Run(o.Dir, "openclaw", remove...); {
 	case errors.Is(err, exec.ErrNotFound):
-		done = append(done, Done{What: "MCP server: openclaw isn't on your PATH", Manual: "openclaw " + shellJoin(remove)})
+		done = append(done, Done{What: "openclaw isn't on your PATH, so toli couldn't remove its MCP server.", Manual: "openclaw " + shellJoin(remove)})
 	case err != nil:
-		done = append(done, Done{What: fmt.Sprintf("MCP server toli: %v", err)})
+		done = append(done, Done{What: fmt.Sprintf("Couldn't remove the MCP server: %v", err)})
 	default:
-		done = append(done, Done{What: "removed MCP server toli from ~/.openclaw/openclaw.json"})
+		done = append(done, Done{File: "~/.openclaw/openclaw.json"})
 	}
 	if err := o.Unregister(openclawMain); err != nil {
-		done = append(done, Done{What: fmt.Sprintf("unregister %s: %v", openclawMain, err)})
-	} else {
-		done = append(done, Done{What: "unregistered OpenClaw's main session (" + openclawMain + ")"})
+		done = append(done, Done{What: fmt.Sprintf("Couldn't unregister OpenClaw's main session: %v", err)})
 	}
 	return done, nil
 }

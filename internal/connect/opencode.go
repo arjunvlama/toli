@@ -54,12 +54,12 @@ func (c opencode) connect(o Options) ([]Done, error) {
 	if err := os.WriteFile(plugin, []byte(src), 0o600); err != nil {
 		return nil, err
 	}
-	done := []Done{{What: "plugin in " + plugin}}
+	done := []Done{{File: plugin}}
 
 	if err := setOpencodeConfig(config, o.MCPURL); err != nil {
 		return nil, err
 	}
-	done = append(done, Done{What: "MCP server toli (tools allowed) in " + config})
+	done = append(done, Done{File: config})
 
 	if o.Scope == Project {
 		for _, f := range []string{config, plugin} {
@@ -68,11 +68,11 @@ func (c opencode) connect(o Options) ([]Done, error) {
 				return nil, err
 			}
 			if ignored {
-				done = append(done, Done{What: "added " + filepath.Base(f) + " to .gitignore"})
+				done = append(done, Done{File: ".gitignore"})
 			}
 		}
 	}
-	return append(done, Done{What: "next: restart OpenCode here; plugins load when it starts"}), nil
+	return append(done, Done{Next: "start OpenCode, or restart a running one: plugins load when it starts."}), nil
 }
 
 // disconnect deletes toli's plugin and takes the MCP server and its
@@ -86,9 +86,9 @@ func (c opencode) disconnect(o Options) ([]Done, error) {
 		return nil, err
 	}
 	return []Done{
-		{What: "deleted " + plugin},
-		{What: "removed MCP server toli from " + config},
-		{What: "running sessions stay connected until they restart"},
+		{File: plugin},
+		{File: config},
+		{Next: "restart running sessions; they stay connected until then."},
 	}, nil
 }
 
