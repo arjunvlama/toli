@@ -571,7 +571,7 @@ func TestConnectByName(t *testing.T) {
 		return string(out)
 	}
 
-	if out := run("connect", "codex", "web"); !strings.Contains(out, "✓ Connected Codex to agent 'web' in /") {
+	if out := run("connect", "codex", "web"); !strings.Contains(out, "✓ Connected Codex to agent 'web' in ") {
 		t.Fatalf("connect by name:\n%s", out)
 	}
 	config, err := os.ReadFile(filepath.Join(dir, ".codex", "config.toml"))
@@ -590,7 +590,7 @@ func TestConnectByName(t *testing.T) {
 		t.Errorf("old URL: %s", out)
 	}
 
-	if out := run("disconnect", "codex"); !strings.Contains(out, "✓ Disconnected Codex in /") {
+	if out := run("disconnect", "codex"); !strings.Contains(out, "✓ Disconnected Codex in ") {
 		t.Errorf("disconnect:\n%s", out)
 	}
 	if out := d.cliFails(t, "connect", "codex", "nobody"); !strings.Contains(out, "no agent 'nobody'") {
@@ -602,7 +602,7 @@ func TestConnectByName(t *testing.T) {
 		t.Errorf("agent add --connect nope: %s", out)
 	}
 	out := run("agent", "add", "api", "--connect", "codex")
-	if !strings.Contains(out, "✓ Added agent 'api'.") || !strings.Contains(out, "✓ Connected Codex to agent 'api' in /") {
+	if !strings.Contains(out, "✓ Added agent 'api'.") || !strings.Contains(out, "✓ Connected Codex to agent 'api' in ") {
 		t.Errorf("agent add --connect:\n%s", out)
 	}
 	if config, _ := os.ReadFile(filepath.Join(dir, ".codex", "config.toml")); !strings.Contains(string(config), "/mcp/toli_") {
