@@ -1,6 +1,6 @@
 #!/bin/sh
 # Checks an installed toli works, as a new user would first use it: the
-# daemon starts, and an agent can be added.
+# daemon starts, and an agent can be added and given an MCP URL.
 set -eu
 
 log="${RUNNER_TEMP:-/tmp}/toli-daemon.log"
@@ -19,7 +19,8 @@ until toli agent list >/dev/null 2>&1; do
   sleep 0.5
 done
 
-out="$(toli agent add smoke)"
+toli agent add smoke
+out="$(toli agent new-token smoke)"
 echo "$out"
 echo "$out" | grep -q '^mcp_url *http://127.0.0.1:7420/mcp/toli_'
 echo "toli works"

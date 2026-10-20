@@ -435,7 +435,7 @@ func TestCLI(t *testing.T) {
 	da, db := startDaemon(t), startDaemon(t)
 
 	out := da.cli(t, "agent", "add", "web", "--description", "Owns the web UI")
-	if !strings.Contains(out, "Next: in its project folder, run `toli connect <harness> web`.") {
+	if !strings.Contains(out, "Next: in the folder where you start it, run `toli connect <harness> web`.") {
 		t.Errorf("agent add:\n%s", out)
 	}
 	if url := field(t, out, "card_url"); url != da.cardURL("web") {

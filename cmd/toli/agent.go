@@ -102,7 +102,7 @@ func runAgent(args []string) error {
 			fmt.Printf("card_url  %s\n", a.ShareURL)
 		}
 		if *harness == "" {
-			fmt.Printf("Next: in its project folder, run `toli connect <harness> %s`.\n", added.Name)
+			fmt.Printf("Next: in the folder where you start it, run `toli connect <harness> %s`.\n", added.Name)
 			return nil
 		}
 		mcpURL := "http://" + mcpAddr() + "/mcp/" + added.Token
