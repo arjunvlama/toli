@@ -60,4 +60,4 @@ case ":$PATH:" in
   *) echo "Add $dir to your PATH, e.g. in ~/.zshrc or ~/.bashrc:"
      echo "  export PATH=\"$dir:\$PATH\"" ;;
 esac
-echo "Next: toli daemon install, then toli"
+echo 'Next: run `toli daemon install`, then `toli`.'

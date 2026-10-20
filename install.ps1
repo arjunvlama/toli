@@ -39,7 +39,7 @@ try {
     [Environment]::SetEnvironmentVariable("Path", "$path;$dir", "User")
     Write-Host "Added $dir to your PATH (open a new terminal to use it)"
   }
-  Write-Host "Next: toli daemon install, then toli"
+  Write-Host 'Next: run `toli daemon install`, then `toli`.'
 } finally {
   Remove-Item $tmp -Recurse -Force
 }

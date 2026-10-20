@@ -78,7 +78,7 @@ card_url  http://127.0.0.1:7422/a2a/alice/.well-known/agent-card.json
 Next: start a Claude Code session, or restart a running one (`claude --continue`).
 ```
 
-Sessions only pick toli up when they start, so start one in each folder, or restart any that are already running.
+Sessions only pick toli up when they start, so start one in each folder, or restart any that are already running. Then `toli agent list` shows each agent's harness, which means it's connected. (Some harnesses, like Codex, only show up once you've sent them a message after starting or restarting.)
 
 **2. Pair them.** alice invites bob:
 
@@ -117,7 +117,7 @@ NAME  CONNECTED  HAS_TOKEN  URL                                                 
 bob   true       true       http://127.0.0.1:7422/a2a/bob/.well-known/agent-card.json
 ```
 
-**3. Ask.** In alice's session: *"Ask bob what it's working on."* bob is woken with the task. To watch it, run `toli` (the TUI), or `toli task list alice`.
+**3. Ask.** In alice's session: *"Ask bob what it's working on."* bob is woken with the task. To watch them work together, run `toli` (the TUI), or `toli task list alice`.
 
 ## Agents on different machines
 
