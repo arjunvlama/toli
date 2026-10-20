@@ -57,23 +57,26 @@ toli daemon status
 
 ## Agents on the same machine
 
-**1. Add the agents.** Peers see the description when deciding what to send an agent.
+**1. Add the agents, and connect them to toli.** Run this in the folder where you start each agent: where you type `claude` or `codex`, or the folder you opened in your editor (its built-in terminal starts there). `--connect` names the agent's harness ([all harnesses](#connecting-your-agent-to-toli)), and peers see the description when deciding what to send it.
 
 ```sh
-toli agent add alice --description "Owns the web UI"
-toli agent add bob --description "Owns the API"
+cd ~/src/web-ui
+toli agent add alice --description "Owns the web UI" --connect claude-code
+
+cd ~/src/api
+toli agent add bob --description "Owns the API" --connect codex
 ```
 
-Each prints its MCP URL and card URL:
+Each prints what it did:
 
 ```
 ✓ Added agent 'alice'.
-mcp_url   http://127.0.0.1:7420/mcp/toli_V2KQ7MXA…
 card_url  http://127.0.0.1:7422/a2a/alice/.well-known/agent-card.json
-Copy the MCP URL now: you'll need it to connect the agent, and you won't be able to see it again.
+✓ Connected Claude Code to agent 'alice' in ~/src/web-ui (~/.claude.json, .claude/settings.local.json).
+Next: start a Claude Code session, or restart a running one (`claude --continue`).
 ```
 
-You'll need each agent's MCP URL in step 3. (If you lose one, `toli agent new-token alice` makes a new one.)
+Sessions only pick toli up when they start, so start one in each folder, or restart any that are already running.
 
 **2. Pair them.** Create an invite to alice, for bob:
 
@@ -112,16 +115,7 @@ NAME  CONNECTED  HAS_TOKEN  URL                                                 
 bob   true       true       http://127.0.0.1:7422/a2a/bob/.well-known/agent-card.json
 ```
 
-**3. Connect each agent to toli.** Run this from each agent's project folder, here for Claude Code and Codex (all harnesses are [below](#connecting-your-agent-to-toli)):
-
-```sh
-toli connect claude-code <alice_mcp_url>
-toli connect codex <bob_mcp_url>
-```
-
-Then start a session in each folder, or restart any that are already running: sessions only pick toli up when they start. To check they're connected, see [Connecting your agent to toli](#connecting-your-agent-to-toli).
-
-**4. Ask.** In alice's session: *"Ask bob what it's working on."* bob is woken with the task, and you can follow it in `toli` or with `toli task list alice`.
+**3. Ask.** In alice's session: *"Ask bob what it's working on."* bob is woken with the task, and you can follow it in `toli` or with `toli task list alice`.
 
 ## Agents on different machines
 
@@ -144,12 +138,13 @@ The steps are the same as on one machine. The daemons just need to be able to re
 ## Connecting your agent to toli
 
 ```sh
-toli connect <harness> <mcp_url> [--scope project|user]
+toli connect <harness> <agent> [--scope project|user]
 ```
 
-This gives your agent toli's tools (MCP) and notifications, so it's woken when work arrives. Harnesses: `claude-code`, `codex`, `opencode`, `pi` and `openclaw`.
+This gives your agent toli's tools (MCP) and notifications, so it's woken when work arrives. Harnesses: `claude-code`, `codex`, `opencode`, `pi` and `openclaw`. `toli agent add --connect` does the same when adding an agent.
 
-- By default this connects sessions started in the current folder. Use `--scope user` to connect all your sessions.
+- Run it in the folder where you start the agent. It connects sessions started there; use `--scope user` to connect all your sessions.
+- It makes a new MCP URL for the agent, so a session still using the old one is disconnected. To use a URL you already have, pass `--mcp-url <url>` instead of the agent.
 - **Then start a new session, or restart the ones already running.** Sessions only pick toli up when they start. Once one has started, `toli agent list` shows its harness, which means it's connected:
 
   ```
@@ -158,11 +153,11 @@ This gives your agent toli's tools (MCP) and notifications, so it's woken when w
   ```
 
   Some harnesses only register a session once you've sent it a first message, so if yours doesn't show up yet, say something to it.
-- `toli disconnect <harness> <mcp_url>` undoes it.
+- `toli disconnect <harness>` undoes it.
 
 ### Any other agent
 
-Any agent with an MCP client can use toli. Point its MCP client at the agent's MCP URL to give it toli's tools.
+Any agent with an MCP client can use toli. Point its MCP client at the agent's MCP URL, which `toli agent new-token <agent>` prints, to give it toli's tools.
 
 To have it woken when work arrives, use one of these:
 

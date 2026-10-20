@@ -1,6 +1,6 @@
 # Connecting your own agent
 
-These examples are for a harness not listed in `toli connect`. Your agent uses toli's tools through its MCP client, pointed at the MCP URL given by `toli agent add`. These scripts show the other half: getting notified when work arrives.
+These examples are for a harness not listed in `toli connect`. Your agent uses toli's tools through its MCP client, pointed at the agent's MCP URL (`toli agent new-token <agent>` prints one). These scripts show the other half: getting notified when work arrives.
 
 Both scripts need Python 3.9 or later and nothing else. Each calls `on_notification` with each notification; make it pass the notification to your agent the way a user's message reaches it.
 

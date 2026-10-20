@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -72,7 +73,9 @@ func main() {
 		os.Exit(2)
 	}
 	if err != nil {
-		fmt.Fprintln(os.Stderr, "toli:", err)
+		if !errors.Is(err, errReported) {
+			fmt.Fprintln(os.Stderr, "toli:", err)
+		}
 		os.Exit(1)
 	}
 }
@@ -91,11 +94,14 @@ func usage(w io.Writer) {
               [--a2a-listen ADDR] [--public-url URL]
   toli daemon install [daemon flags]                      run it always: at login, restarted if it stops
   toli daemon uninstall|start|stop|restart|status         manage that
-  toli connect HARNESS MCP_URL [--scope project|user]     set a coding agent up to use one of your agents
-  toli disconnect HARNESS MCP_URL [--scope project|user]  undo toli connect
-  toli agent add|edit AGENT [--description TEXT] [--skills FILE]
-                                                          add one of your agents (prints its MCP URL and card URL), or edit it
-  toli agent new-token AGENT                              a new MCP URL for AGENT (the old one stops working)
+  toli connect HARNESS AGENT [--scope project|user]       set a coding agent up as AGENT (makes a new MCP URL)
+  toli connect HARNESS --mcp-url URL [--scope ...]        the same, with an MCP URL you have
+  toli disconnect HARNESS [--scope project|user]          undo toli connect
+  toli agent add AGENT [--description TEXT] [--skills FILE] [--connect HARNESS]
+                                                          add one of your agents; with --connect, also connect a harness to it here
+  toli agent edit AGENT [--description TEXT] [--skills FILE]
+                                                          change its description or skills
+  toli agent new-token AGENT                              print a new MCP URL for AGENT (the old one stops working)
   toli agent notify AGENT --command PATH | --webhook URL | --none
                                                           push AGENT's notifications when it has no harness session
   toli agent disable|enable|remove AGENT                  pause it (it and its peers are refused), resume it, or delete it
@@ -112,6 +118,17 @@ func usage(w io.Writer) {
   toli task cancel AGENT ID                               cancel a task AGENT delegated
   toli hook HARNESS EVENT MCP_URL                         run by a coding agent's hooks (see toli connect)
   toli version                                            toli's version`)
+}
+
+// errReported: the command failed and has already said how.
+var errReported = errors.New("reported")
+
+// failed reports a step that failed after others succeeded, as gh does: an
+// X line and what to run once it's fixed, on stderr.
+func failed(next, format string, args ...any) error {
+	fmt.Fprintf(os.Stderr, "X "+format+"\n", args...)
+	fmt.Fprintf(os.Stderr, "Next: %s\n", next)
+	return errReported
 }
 
 // ok reports that a command did what was asked: one line, starting with ✓.

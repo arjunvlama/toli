@@ -16,6 +16,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"regexp"
 	"runtime"
 	"strings"
 	"testing"
@@ -434,8 +435,8 @@ func TestCLI(t *testing.T) {
 	da, db := startDaemon(t), startDaemon(t)
 
 	out := da.cli(t, "agent", "add", "web", "--description", "Owns the web UI")
-	if url := field(t, out, "mcp_url"); !strings.HasPrefix(url, "http://"+da.mcp+"/mcp/") {
-		t.Errorf("mcp_url = %s", url)
+	if !strings.Contains(out, "Next: in its project folder, run `toli connect <harness> web`.") {
+		t.Errorf("agent add:\n%s", out)
 	}
 	if url := field(t, out, "card_url"); url != da.cardURL("web") {
 		t.Errorf("card_url = %s, want %s", url, da.cardURL("web"))
@@ -550,6 +551,75 @@ func TestInvite(t *testing.T) {
 	}
 	da.waitConnected(t, "frontend", "docs")
 	da.waitConnected(t, "docs", "ui")
+}
+
+// TestConnectByName connects a harness by agent name: it gets a new MCP URL,
+// and the old one stops working.
+func TestConnectByName(t *testing.T) {
+	d := startDaemon(t)
+	old := addAgent(t, d, "web").token
+	dir := t.TempDir()
+	run := func(args ...string) string {
+		t.Helper()
+		cmd := exec.Command(toli, args...)
+		cmd.Dir = dir
+		cmd.Env = append(os.Environ(), "TOLI_HOME="+d.home, "TOLI_ADMIN_ADDR="+d.admin, "TOLI_MCP_ADDR="+d.mcp)
+		out, err := cmd.CombinedOutput()
+		if err != nil {
+			t.Fatalf("toli %s: %v\n%s", strings.Join(args, " "), err, out)
+		}
+		return string(out)
+	}
+
+	if out := run("connect", "codex", "web"); !strings.Contains(out, "✓ Connected Codex to agent 'web' in /") {
+		t.Fatalf("connect by name:\n%s", out)
+	}
+	config, err := os.ReadFile(filepath.Join(dir, ".codex", "config.toml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	url := regexp.MustCompile(`url = "([^"]+)"`).FindStringSubmatch(string(config))
+	if url == nil || !strings.HasPrefix(url[1], "http://"+d.mcp+"/mcp/toli_") || strings.HasSuffix(url[1], old) {
+		t.Fatalf("config.toml:\n%s", config)
+	}
+	// The new URL works (connect checks it); the old one doesn't.
+	if out := run("connect", "codex", "--mcp-url", url[1]); !strings.Contains(out, "agent 'web'") {
+		t.Errorf("connect --mcp-url:\n%s", out)
+	}
+	if out := d.cliFails(t, "connect", "codex", "--mcp-url", "http://"+d.mcp+"/mcp/"+old); !strings.Contains(out, "check the MCP URL") {
+		t.Errorf("old URL: %s", out)
+	}
+
+	if out := run("disconnect", "codex"); !strings.Contains(out, "✓ Disconnected Codex in /") {
+		t.Errorf("disconnect:\n%s", out)
+	}
+	if out := d.cliFails(t, "connect", "codex", "nobody"); !strings.Contains(out, "no agent 'nobody'") {
+		t.Errorf("unknown agent: %s", out)
+	}
+
+	// Adding an agent can connect it too; an unknown harness adds nothing.
+	if out := d.cliFails(t, "agent", "add", "api", "--connect", "nope"); !strings.Contains(out, "unknown harness") {
+		t.Errorf("agent add --connect nope: %s", out)
+	}
+	out := run("agent", "add", "api", "--connect", "codex")
+	if !strings.Contains(out, "✓ Added agent 'api'.") || !strings.Contains(out, "✓ Connected Codex to agent 'api' in /") {
+		t.Errorf("agent add --connect:\n%s", out)
+	}
+	if config, _ := os.ReadFile(filepath.Join(dir, ".codex", "config.toml")); !strings.Contains(string(config), "/mcp/toli_") {
+		t.Errorf("config.toml after agent add --connect:\n%s", config)
+	}
+
+	// If connecting fails, the agent stays and the output says how to finish.
+	cmd := exec.Command(toli, "agent", "add", "claw", "--connect", "openclaw")
+	cmd.Dir = dir
+	cmd.Env = append(os.Environ(), "TOLI_HOME="+d.home, "TOLI_ADMIN_ADDR="+d.admin, "TOLI_MCP_ADDR="+d.mcp, "PATH="+t.TempDir())
+	out2, err := cmd.CombinedOutput()
+	if err == nil || !strings.Contains(string(out2), "✓ Added agent 'claw'.") ||
+		!strings.Contains(string(out2), "X Couldn't connect OpenClaw: openclaw isn't on your PATH") ||
+		!strings.Contains(string(out2), "Next: once that's fixed, run `toli connect openclaw claw` here.") ||
+		strings.Contains(string(out2), "toli:") {
+		t.Errorf("agent add --connect that fails: %v\n%s", err, out2)
+	}
 }
 
 // TestPushNotify: an agent with no session, but a webhook set by its human,

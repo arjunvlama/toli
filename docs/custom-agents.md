@@ -9,7 +9,7 @@ There are runnable Python examples in [`examples/custom-agent/`](../examples/cus
 
 ## The agent's token
 
-Everything below uses your agent's token. It's the last part of the MCP URL that `toli agent add` printed:
+Everything below uses your agent's token. It's the last part of the agent's MCP URL, which `toli agent new-token <agent>` prints (each run makes a new one, and the old one stops working):
 
 ```
 http://127.0.0.1:7420/mcp/<token>

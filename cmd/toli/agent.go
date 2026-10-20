@@ -10,14 +10,16 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"text/tabwriter"
 
 	"github.com/arjunvlama/toli/internal/api"
+	"github.com/arjunvlama/toli/internal/connect"
 )
 
 const agentUsage = `usage:
-  toli agent add AGENT [--description TEXT] [--skills FILE]
+  toli agent add AGENT [--description TEXT] [--skills FILE] [--connect HARNESS [--scope project|user]]
   toli agent edit AGENT [--description TEXT] [--skills FILE]
   toli agent new-token AGENT
   toli agent notify AGENT --command PATH | --webhook URL | --none
@@ -42,6 +44,11 @@ func runAgent(args []string) error {
 		fs := flag.NewFlagSet("agent "+cmd, flag.ContinueOnError)
 		desc := fs.String("description", "", "what the agent works on; peers see it")
 		skillsFile := fs.String("skills", "", "a JSON file with the agent's skills: [{\"name\": ..., \"description\": ..., \"tags\": [...], \"examples\": [...]}]")
+		var harness, scope *string
+		if cmd == "add" {
+			harness = fs.String("connect", "", "also connect this harness to the agent, as `toli connect` does")
+			scope = fs.String("scope", connect.Project, "with --connect: project (sessions started in this directory) or user (all sessions)")
+		}
 		if err := fs.Parse(args[1:]); err != nil {
 			return err
 		}
@@ -52,6 +59,15 @@ func runAgent(args []string) error {
 			var err error
 			if skills, err = readSkills(*skillsFile); err != nil {
 				return err
+			}
+		}
+		if harness != nil && *harness != "" {
+			// Check now, before the agent exists.
+			if !slices.Contains(connect.Harnesses(), *harness) {
+				return fmt.Errorf("unknown harness %q (want one of: %s)", *harness, strings.Join(connect.Harnesses(), ", "))
+			}
+			if *scope != connect.Project && *scope != connect.User {
+				return fmt.Errorf("unknown scope %q (want %s or %s)", *scope, connect.Project, connect.User)
 			}
 		}
 		c, err := adminClient()
@@ -82,11 +98,18 @@ func runAgent(args []string) error {
 			return err
 		}
 		ok("Added agent '%s'.", added.Name)
-		fmt.Printf("mcp_url   http://%s/mcp/%s\n", mcpAddr(), added.Token)
 		if a, err := findAgent(ctx, c, added.Name); err == nil && a.ShareURL != "" {
 			fmt.Printf("card_url  %s\n", a.ShareURL)
 		}
-		fmt.Println("Copy the MCP URL now: you'll need it to connect the agent, and you won't be able to see it again.")
+		if *harness == "" {
+			fmt.Printf("Next: in its project folder, run `toli connect <harness> %s`.\n", added.Name)
+			return nil
+		}
+		mcpURL := "http://" + mcpAddr() + "/mcp/" + added.Token
+		if err := doConnect(ctx, *harness, added.Name, mcpURL, *scope, false, false); err != nil {
+			return failed(fmt.Sprintf("once that's fixed, run `toli connect %s %s` here.", *harness, added.Name),
+				"Couldn't connect %s: %s", harnessName(*harness), strings.TrimSuffix(err.Error(), "."))
+		}
 		return nil
 	case cmd == "new-token" && len(args) == 1:
 		c, err := adminClient()
@@ -100,7 +123,7 @@ func runAgent(args []string) error {
 		ok("Made a new MCP URL for agent '%s'. The old one no longer works.", args[0])
 		fmt.Printf("mcp_url   http://%s/mcp/%s\n", mcpAddr(), rotated.Token)
 		fmt.Println("Copy it now: you won't be able to see it again.")
-		fmt.Println("Next: run `toli connect` again with it.")
+		fmt.Println("Next: anything using the old URL needs this one, e.g. `toli connect <harness> --mcp-url <url>`.")
 		return nil
 	case (cmd == "disable" || cmd == "enable") && len(args) == 1:
 		c, err := adminClient()
