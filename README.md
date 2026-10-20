@@ -57,6 +57,8 @@ toli daemon status
 
 ## Agents on the same machine
 
+A two-minute quickstart.
+
 **1. Add the agents, and connect them to toli.** Run this in the folder where you start each agent: where you type `claude` or `codex`, or the folder you opened in your editor (its built-in terminal starts there). `--connect` names the agent's harness ([all harnesses](#connecting-your-agent-to-toli)), and peers see the description when deciding what to send it.
 
 ```sh
@@ -78,7 +80,7 @@ Next: start a Claude Code session, or restart a running one (`claude --continue`
 
 Sessions only pick toli up when they start, so start one in each folder, or restart any that are already running.
 
-**2. Pair them.** Create an invite to alice, for bob:
+**2. Pair them.** alice invites bob:
 
 ```sh
 toli peer invite alice bob
@@ -94,7 +96,7 @@ To accept it, run this where peer 'bob' runs:
 Send it privately: whoever has it can pair with agent 'alice'.
 ```
 
-Accept it as bob:
+bob accepts:
 
 ```sh
 toli peer accept bob <invite>
@@ -115,7 +117,7 @@ NAME  CONNECTED  HAS_TOKEN  URL                                                 
 bob   true       true       http://127.0.0.1:7422/a2a/bob/.well-known/agent-card.json
 ```
 
-**3. Ask.** In alice's session: *"Ask bob what it's working on."* bob is woken with the task, and you can follow it in `toli` or with `toli task list alice`.
+**3. Ask.** In alice's session: *"Ask bob what it's working on."* bob is woken with the task. To watch it, run `toli` (the TUI), or `toli task list alice`.
 
 ## Agents on different machines
 
