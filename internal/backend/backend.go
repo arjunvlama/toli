@@ -17,7 +17,7 @@ import (
 // Options tunes the backend's background work. Zero values mean the defaults.
 type Options struct {
 	PollEvery  time.Duration // how often active tasks are polled (default 3s)
-	CheckEvery time.Duration // how often peers' cards are re-fetched (default 5m)
+	CheckEvery time.Duration // how often peers' cards are re-fetched (default 30s)
 }
 
 type Backend struct {

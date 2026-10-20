@@ -143,7 +143,7 @@ func (s *Server) addAgent(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if errors.Is(err, store.ErrExists) {
-		writeError(w, http.StatusConflict, "agent "+req.Name+" already exists")
+		writeError(w, http.StatusConflict, "agent '"+req.Name+"' already exists")
 		return
 	}
 	if err != nil {
@@ -170,7 +170,7 @@ func (s *Server) updateAgent(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if errors.Is(err, store.ErrNotFound) {
-		writeError(w, http.StatusNotFound, "agent "+name+" not found")
+		writeError(w, http.StatusNotFound, "agent '"+name+"' not found")
 		return
 	}
 	if err != nil {
@@ -186,7 +186,7 @@ func (s *Server) removeAgent(w http.ResponseWriter, r *http.Request) {
 	err := s.backend.RemoveAgent(r.Context(), name)
 	switch {
 	case errors.Is(err, store.ErrNotFound):
-		writeError(w, http.StatusNotFound, "agent "+name+" not found")
+		writeError(w, http.StatusNotFound, "agent '"+name+"' not found")
 		return
 	case err != nil:
 		writeError(w, http.StatusInternalServerError, err.Error())
@@ -210,7 +210,7 @@ func (s *Server) setAgentDisabled(w http.ResponseWriter, r *http.Request, set fu
 	err := set(r.Context(), name)
 	switch {
 	case errors.Is(err, store.ErrNotFound):
-		writeError(w, http.StatusNotFound, "agent "+name+" not found")
+		writeError(w, http.StatusNotFound, "agent '"+name+"' not found")
 		return
 	case err != nil:
 		writeError(w, http.StatusInternalServerError, err.Error())
@@ -233,7 +233,7 @@ func (s *Server) setAgentNotify(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, err.Error())
 		return
 	case errors.Is(err, store.ErrNotFound):
-		writeError(w, http.StatusNotFound, "agent "+name+" not found")
+		writeError(w, http.StatusNotFound, "agent '"+name+"' not found")
 		return
 	case err != nil:
 		writeError(w, http.StatusInternalServerError, err.Error())
@@ -248,7 +248,7 @@ func (s *Server) rotateAgentToken(w http.ResponseWriter, r *http.Request) {
 	tok, err := s.backend.RotateAgentToken(r.Context(), name)
 	switch {
 	case errors.Is(err, store.ErrNotFound):
-		writeError(w, http.StatusNotFound, "agent "+name+" not found")
+		writeError(w, http.StatusNotFound, "agent '"+name+"' not found")
 		return
 	case err != nil:
 		writeError(w, http.StatusInternalServerError, err.Error())

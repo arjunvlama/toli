@@ -68,6 +68,16 @@ func (s *Store) PeerByInboundTokenHash(ctx context.Context, hash string) (Peer, 
 // none yet). Returns ErrExists if that agent already has a peer by this name,
 // and ErrNotFound if the local agent doesn't exist.
 func (s *Store) AddPeer(ctx context.Context, p Peer, inboundTokenHash string) (int64, error) {
+	return insertPeer(ctx, s.db, p, inboundTokenHash)
+}
+
+// execer is what *sql.DB and *sql.Tx have in common for writes.
+type execer interface {
+	ExecContext(ctx context.Context, query string, args ...any) (sql.Result, error)
+}
+
+// insertPeer is AddPeer, on the database or in a transaction.
+func insertPeer(ctx context.Context, db execer, p Peer, inboundTokenHash string) (int64, error) {
 	var card sql.NullString // NULL until the peer's card has been fetched
 	if p.Card != nil {
 		b, err := json.Marshal(p.Card)
@@ -77,7 +87,7 @@ func (s *Store) AddPeer(ctx context.Context, p Peer, inboundTokenHash string) (i
 		card = sql.NullString{String: string(b), Valid: true}
 	}
 
-	res, err := s.db.ExecContext(ctx,
+	res, err := db.ExecContext(ctx,
 		`INSERT INTO peers (agent, name, url, card, outbound_token, inbound_token_hash, created_at)
 		 VALUES (?, ?, ?, ?, ?, ?, ?)`,
 		p.Agent, p.Name, p.URL, card, nullIfEmpty(p.OutboundToken), nullIfEmpty(inboundTokenHash), time.Now().Unix(),
@@ -109,7 +119,7 @@ func scanPeer(sc scanner) (Peer, error) {
 	if card.Valid {
 		p.Card = new(a2a.AgentCard)
 		if err := json.Unmarshal([]byte(card.String), p.Card); err != nil {
-			return Peer{}, fmt.Errorf("decode card for peer %s: %w", p.Name, err)
+			return Peer{}, fmt.Errorf("decode card for peer '%s': %w", p.Name, err)
 		}
 	}
 	p.OutboundToken = outbound.String

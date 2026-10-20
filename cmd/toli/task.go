@@ -25,6 +25,10 @@ func runTask(args []string) error {
 	if len(args) < 1 {
 		return errors.New(taskUsage)
 	}
+	if isHelp(args) {
+		fmt.Println(taskUsage)
+		return nil
+	}
 	ctx := context.Background()
 	cmd, args := args[0], args[1:]
 	switch {
@@ -132,7 +136,7 @@ func resolveTask(ctx context.Context, c *api.Client, agent, id string, assigned 
 	}
 	full, err := matchTask(ids, id)
 	if err != nil {
-		return "", fmt.Errorf("agent %s: %w", agent, err)
+		return "", fmt.Errorf("agent '%s': %w", agent, err)
 	}
 	return full, nil
 }

@@ -31,7 +31,7 @@ func (b *Backend) RotatePeerToken(ctx context.Context, peerID int64) (string, st
 	}
 	tok, hash := token.New()
 	if err := b.store.SetPeerInboundTokenHash(ctx, peerID, hash); err != nil {
-		return "", "", fmt.Errorf("rotate token for peer %s: %w", peer.Name, err)
+		return "", "", fmt.Errorf("rotate token for peer '%s': %w", peer.Name, err)
 	}
 	return peer.Name, tok, nil
 }

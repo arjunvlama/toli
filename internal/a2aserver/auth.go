@@ -55,7 +55,7 @@ func (s *Server) authenticate(next http.Handler) http.Handler {
 			return
 		}
 		if a.DisabledAt != nil {
-			http.Error(w, "agent "+agent+" isn't accepting work right now", http.StatusForbidden)
+			http.Error(w, "agent '"+agent+"' isn't accepting work right now", http.StatusForbidden)
 			return
 		}
 

@@ -28,7 +28,7 @@ func (c codex) connect(o Options) ([]Done, error) {
 	if o.Scope == Project {
 		for _, f := range []string{config, hooksFile} {
 			if o.Run(o.Dir, "git", "ls-files", "--error-unmatch", f) == nil {
-				return nil, fmt.Errorf("git tracks %s, so the agent's token would be committed; use --scope user", f)
+				return nil, fmt.Errorf("git tracks %s, so the agent's token would be committed; use `--scope user`", f)
 			}
 		}
 	}

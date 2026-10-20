@@ -60,69 +60,68 @@ toli daemon status
 **1. Add the agents.** Peers see the description when deciding what to send an agent.
 
 ```sh
-toli agent add agent1 --description "Owns the web UI"
-toli agent add agent2 --description "Owns the API"
+toli agent add alice --description "Owns the web UI"
+toli agent add bob --description "Owns the API"
 ```
 
 Each prints its MCP URL and card URL:
 
 ```
-✓ Added agent1.
+✓ Added agent 'alice'.
 mcp_url   http://127.0.0.1:7420/mcp/toli_V2KQ7MXA…
-card_url  http://127.0.0.1:7422/a2a/agent1/.well-known/agent-card.json
+card_url  http://127.0.0.1:7422/a2a/alice/.well-known/agent-card.json
 Copy the MCP URL now: you'll need it to connect the agent, and you won't be able to see it again.
 ```
 
-You'll need each agent's MCP URL in step 3. (If you lose one, `toli agent new-token agent1` makes a new one.)
+You'll need each agent's MCP URL in step 3. (If you lose one, `toli agent new-token alice` makes a new one.)
 
-**2. Pair them.** Each agent issues a token for the other, which the other uses when it calls it. Add agent2 as agent1's peer:
-
-```sh
-toli peer add agent1 agent2 <agent2_card_url>
-```
-
-It prints the token agent2 will use:
-
-```
-✓ Added agent2 as a peer of agent1.
-token  toli_P5RZ2DUA…
-Give this token to agent2. Copy it now: you won't be able to see it again.
-Next: when agent2 gives you its token, run toli peer token agent1 agent2 <token>
-```
-
-Add agent1 as agent2's peer, with that token. It prints the token agent1 will use:
+**2. Pair them.** Create an invite to alice, for bob:
 
 ```sh
-toli peer add agent2 agent1 <agent1_card_url> --token <token_for_agent2>
+toli peer invite alice bob
 ```
 
-Give agent1 that second token:
+```
+✓ Created an invite for peer 'bob'. It works once, within 24 hours.
+
+To accept it, run this where peer 'bob' runs:
+
+    toli peer accept <agent> toli-invite:eyJ2IjoxLCJhZ2Vu…
+
+Send it privately: whoever has it can pair with agent 'alice'.
+```
+
+Accept it as bob:
 
 ```sh
-toli peer token agent1 agent2 <token_for_agent1>
+toli peer accept bob <invite>
+```
+
+```
+✓ Paired agent 'bob' with peer 'alice'.
 ```
 
 Check they're connected:
 
 ```sh
-toli peer list agent1
+toli peer list alice
 ```
 
 ```
-NAME    CONNECTED  HAS_TOKEN  URL                                                          LAST_ERROR
-agent2  true       true       http://127.0.0.1:7422/a2a/agent2/.well-known/agent-card.json
+NAME  CONNECTED  HAS_TOKEN  URL                                                        LAST_ERROR
+bob   true       true       http://127.0.0.1:7422/a2a/bob/.well-known/agent-card.json
 ```
 
 **3. Connect each agent to toli.** Run this from each agent's project folder, here for Claude Code and Codex (all harnesses are [below](#connecting-your-agent-to-toli)):
 
 ```sh
-toli connect claude-code <agent1_mcp_url>
-toli connect codex <agent2_mcp_url>
+toli connect claude-code <alice_mcp_url>
+toli connect codex <bob_mcp_url>
 ```
 
 Then start a session in each folder, or restart any that are already running: sessions only pick toli up when they start. To check they're connected, see [Connecting your agent to toli](#connecting-your-agent-to-toli).
 
-**4. Ask.** In agent1's session: *"Ask agent2 what it's working on."* agent2 is woken with the task, and you can follow it in `toli` or with `toli task list agent1`.
+**4. Ask.** In alice's session: *"Ask bob what it's working on."* bob is woken with the task, and you can follow it in `toli` or with `toli task list alice`.
 
 ## Agents on different machines
 
@@ -140,7 +139,7 @@ The steps are the same as on one machine. The daemons just need to be able to re
 - **A network you trust** (home, office): do the same with the machine's local IP.
 - **The public internet**: only behind HTTPS. Keep the daemon listening locally, and put an HTTPS tunnel (Cloudflare Tunnel, ngrok) or reverse proxy in front of its A2A address. Use the tunnel's `https://` address as your daemon's public URL. Never make the A2A address itself reachable from the internet.
 
-**Then pair them as in step 2.** Each of you does it on your own daemon. Share your card URLs and tokens securely.
+**Then pair them as in step 2.** One of you creates the invite and sends it to the other privately, like a password; the other accepts it on their own daemon. To pair without an invite, use `toli peer add` and `toli peer token` (`toli peer --help`).
 
 ## Connecting your agent to toli
 
@@ -154,8 +153,8 @@ This gives your agent toli's tools (MCP) and notifications, so it's woken when w
 - **Then start a new session, or restart the ones already running.** Sessions only pick toli up when they start. Once one has started, `toli agent list` shows its harness, which means it's connected:
 
   ```
-  NAME    HARNESS      DISABLED  NOTIFY  CARD_URL
-  agent1  claude-code  false             http://127.0.0.1:7422/a2a/agent1/.well-known/agent-card.json
+  NAME   HARNESS      DISABLED  NOTIFY  CARD_URL
+  alice  claude-code  false             http://127.0.0.1:7422/a2a/alice/.well-known/agent-card.json
   ```
 
   Some harnesses only register a session once you've sent it a first message, so if yours doesn't show up yet, say something to it.

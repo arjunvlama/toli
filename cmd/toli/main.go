@@ -77,6 +77,11 @@ func main() {
 	}
 }
 
+// isHelp reports whether args ask for a command's help.
+func isHelp(args []string) bool {
+	return len(args) == 1 && (args[0] == "--help" || args[0] == "-h" || args[0] == "help")
+}
+
 // usage lists the commands: on stdout when asked for, on stderr after a
 // mistake.
 func usage(w io.Writer) {
@@ -95,6 +100,8 @@ func usage(w io.Writer) {
                                                           push AGENT's notifications when it has no harness session
   toli agent disable|enable|remove AGENT                  pause it (it and its peers are refused), resume it, or delete it
   toli agent list                                         your agents
+  toli peer invite AGENT PEER                             an invite for another agent to pair with AGENT as PEER
+  toli peer accept AGENT INVITE [--name NAME]             pair AGENT with the agent that made INVITE
   toli peer add AGENT PEER CARD_URL [--token TOKEN]       let AGENT work with another agent; prints the token to give it
   toli peer token AGENT PEER TOKEN                        set the token the peer gave you
   toli peer new-token AGENT PEER                          a new token to give PEER (the old one stops working)

@@ -386,6 +386,36 @@ func (d *daemon) cli(t *testing.T, args ...string) string {
 	return string(out)
 }
 
+// cliFails runs a toli command that should fail, and returns its output.
+func (d *daemon) cliFails(t *testing.T, args ...string) string {
+	t.Helper()
+	cmd := exec.Command(toli, args...)
+	cmd.Env = append(os.Environ(), "TOLI_HOME="+d.home, "TOLI_ADMIN_ADDR="+d.admin, "TOLI_MCP_ADDR="+d.mcp)
+	out, err := cmd.CombinedOutput()
+	if err == nil {
+		t.Fatalf("toli %s succeeded:\n%s", strings.Join(args, " "), out)
+	}
+	return string(out)
+}
+
+// waitConnected waits until toli peer list shows agent's peer as connected
+// and holding its token.
+func (d *daemon) waitConnected(t *testing.T, agent, peer string) {
+	t.Helper()
+	for i := 0; ; i++ {
+		out := d.cli(t, "peer", "list", agent)
+		for _, line := range strings.Split(out, "\n") {
+			if f := strings.Fields(line); len(f) >= 3 && f[0] == peer && f[1] == "true" && f[2] == "true" {
+				return
+			}
+		}
+		if i == 100 {
+			t.Fatalf("%s's peer %s isn't connected:\n%s", agent, peer, out)
+		}
+		time.Sleep(100 * time.Millisecond)
+	}
+}
+
 // field is the value on a "key  value" line of CLI output.
 func field(t *testing.T, out, key string) string {
 	t.Helper()
@@ -417,21 +447,8 @@ func TestCLI(t *testing.T) {
 	tokenForBackend := field(t, da.cli(t, "peer", "add", "frontend", "backend", db.cardURL("backend")), "token")
 	tokenForFrontend := field(t, db.cli(t, "peer", "add", "backend", "frontend", da.cardURL("frontend"), "--token", tokenForBackend), "token")
 	da.cli(t, "peer", "token", "frontend", "backend", tokenForFrontend)
-	for _, side := range []struct {
-		d           *daemon
-		agent, peer string
-	}{{da, "frontend", "backend"}, {db, "backend", "frontend"}} {
-		for i := 0; ; i++ {
-			out := side.d.cli(t, "peer", "list", side.agent)
-			if f := strings.Fields(strings.Split(out, "\n")[1]); len(f) >= 3 && f[0] == side.peer && f[1] == "true" && f[2] == "true" {
-				break
-			}
-			if i == 100 {
-				t.Fatalf("%s's peer %s isn't connected:\n%s", side.agent, side.peer, out)
-			}
-			time.Sleep(100 * time.Millisecond)
-		}
-	}
+	da.waitConnected(t, "frontend", "backend")
+	db.waitConnected(t, "backend", "frontend")
 
 	// A task shows on both sides, by its short ID too, and can be canceled.
 	id := frontend.must("delegate", map[string]any{"peer": "backend", "message": "Add a /stats endpoint"})["task_id"].(string)
@@ -471,7 +488,7 @@ func TestCLI(t *testing.T) {
 		t.Fatal(err)
 	}
 	out = db.cli(t, "agent", "notify", "backend", "--webhook", "https://example.com/toli")
-	if !strings.Contains(out, "✓ backend's notifications now go to webhook https://example.com/toli.") || !strings.HasPrefix(field(t, out, "secret"), "toli_") {
+	if !strings.Contains(out, "✓ Notifications for agent 'backend' now go to webhook https://example.com/toli.") || !strings.HasPrefix(field(t, out, "secret"), "toli_") {
 		t.Errorf("notify --webhook:\n%s", out)
 	}
 	if out := db.cli(t, "agent", "notify", "backend", "--command", wake); !strings.Contains(out, "(replacing webhook https://example.com/…)") {
@@ -483,6 +500,56 @@ func TestCLI(t *testing.T) {
 	if out := db.cli(t, "agent", "notify", "backend", "--none"); !strings.Contains(out, "(they went to command "+wake+")") {
 		t.Errorf("notify --none:\n%s", out)
 	}
+}
+
+// TestInvite pairs agents with toli peer invite and accept: on two daemons,
+// then two agents on one daemon.
+func TestInvite(t *testing.T) {
+	da, db := startDaemon(t), startDaemon(t)
+	frontend, backend := addAgent(t, da, "frontend"), addAgent(t, db, "backend")
+
+	out := da.cli(t, "peer", "invite", "frontend", "backend")
+	inv := ""
+	for _, f := range strings.Fields(out) {
+		if strings.HasPrefix(f, "toli-invite:") {
+			inv = f
+		}
+	}
+	if !strings.Contains(out, "✓ Created an invite for peer 'backend'.") || !strings.Contains(out, "toli peer accept <agent> "+inv) || inv == "" {
+		t.Fatalf("peer invite:\n%s", out)
+	}
+	if out := db.cli(t, "peer", "accept", "backend", inv); !strings.Contains(out, "✓ Paired agent 'backend' with peer 'frontend'.") {
+		t.Errorf("peer accept: %s", out)
+	}
+	da.waitConnected(t, "frontend", "backend")
+	db.waitConnected(t, "backend", "frontend")
+
+	// Each side's token works: both can delegate.
+	frontend.must("delegate", map[string]any{"peer": "backend", "message": "Add a /stats endpoint"})
+	backend.must("delegate", map[string]any{"peer": "frontend", "message": "Show the stats"})
+	if out := db.cli(t, "task", "list", "backend", "--assigned"); !strings.Contains(out, "frontend") {
+		t.Errorf("backend's assigned tasks:\n%s", out)
+	}
+	if out := da.cli(t, "task", "list", "frontend", "--assigned"); !strings.Contains(out, "backend") {
+		t.Errorf("frontend's assigned tasks:\n%s", out)
+	}
+
+	// A used invite pairs no one else.
+	addAgent(t, db, "other")
+	if out := db.cliFails(t, "peer", "accept", "other", inv); !strings.Contains(out, "no such invite") {
+		t.Errorf("used invite: %s", out)
+	}
+
+	// Two agents on one daemon, with a name of the accepter's choosing.
+	addAgent(t, da, "docs")
+	out = da.cli(t, "peer", "invite", "frontend", "docs")
+	inv = out[strings.Index(out, "toli-invite:"):]
+	inv = inv[:strings.IndexAny(inv, " \n")]
+	if out := da.cli(t, "peer", "accept", "docs", inv, "--name", "ui"); !strings.Contains(out, "✓ Paired agent 'docs' with peer 'ui'.") {
+		t.Errorf("peer accept --name: %s", out)
+	}
+	da.waitConnected(t, "frontend", "docs")
+	da.waitConnected(t, "docs", "ui")
 }
 
 // TestPushNotify: an agent with no session, but a webhook set by its human,

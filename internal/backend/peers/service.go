@@ -4,6 +4,7 @@ package peers
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
 	"sync"
@@ -17,6 +18,9 @@ import (
 	"github.com/arjunvlama/toli/internal/taskclient"
 	"github.com/arjunvlama/toli/internal/token"
 )
+
+// ErrUnreachable: a peer's card couldn't be fetched.
+var ErrUnreachable = errors.New("peer unreachable")
 
 // orphanCancelTimeout bounds the cancels sent for tasks deleted along with
 // their peer or session.
@@ -95,11 +99,44 @@ func (ps *Service) Add(ctx context.Context, agent, name, url, outboundToken stri
 	peer.ID, err = ps.store.AddPeer(ctx, peer, hash)
 	if err != nil {
 		client.Destroy()
-		return store.Peer{}, "", fmt.Errorf("add peer %s: %w", name, err)
+		return store.Peer{}, "", fmt.Errorf("add peer '%s': %w", name, err)
 	}
 	ps.pool.Put(peer, client)
 	ps.pool.CheckSoon(peer.ID)
 	return peer, inbound, nil
+}
+
+// AddByInvite is Add for a peer that accepted one of agent's invites.
+func (ps *Service) AddByInvite(ctx context.Context, tokenHash, agent, url, outboundToken string) (store.Peer, error) {
+	// Before fetching anything, so a stranger can't make us fetch URLs.
+	if err := ps.store.CheckInvite(ctx, tokenHash, agent); err != nil {
+		return store.Peer{}, err
+	}
+	card, err := peerclient.FetchCard(ctx, url)
+	if err != nil {
+		return store.Peer{}, fmt.Errorf("%w: fetch agent card from %s: %w", ErrUnreachable, url, err)
+	}
+	client, err := peerclient.NewClient(ctx, card, outboundToken)
+	if err != nil {
+		return store.Peer{}, fmt.Errorf("connect to peer at %s: %w", url, err)
+	}
+	peer := store.Peer{Agent: agent, URL: url, Card: card, OutboundToken: outboundToken, CreatedAt: time.Now()}
+
+	ps.mu.Lock()
+	defer ps.mu.Unlock()
+	peer, err = ps.store.RedeemInvite(ctx, tokenHash, peer)
+	if err != nil {
+		client.Destroy()
+		return store.Peer{}, err
+	}
+	ps.pool.Put(peer, client)
+	ps.pool.CheckSoon(peer.ID)
+	return peer, nil
+}
+
+// CheckSoon re-checks a peer's connection now, not at the next round.
+func (ps *Service) CheckSoon(peerID int64) {
+	ps.pool.CheckSoon(peerID)
 }
 
 // SetToken stores the token the peer gave us (if it wasn't known when the
@@ -114,11 +151,11 @@ func (ps *Service) SetToken(ctx context.Context, peerID int64, outboundToken str
 	}
 	client, err := peerclient.NewClient(ctx, peer.Card, outboundToken)
 	if err != nil {
-		return fmt.Errorf("connect to peer %s: %w", peer.Name, err)
+		return fmt.Errorf("connect to peer '%s': %w", peer.Name, err)
 	}
 	if err := ps.store.SetPeerOutboundToken(ctx, peerID, outboundToken); err != nil {
 		client.Destroy()
-		return fmt.Errorf("set token of peer %s: %w", peer.Name, err)
+		return fmt.Errorf("set token of peer '%s': %w", peer.Name, err)
 	}
 	peer.OutboundToken = outboundToken
 	ps.pool.Put(peer, client)

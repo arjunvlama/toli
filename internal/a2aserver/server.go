@@ -47,6 +47,7 @@ func New(b *backend.Backend, publicURL string) http.Handler {
 	mux.HandleFunc("/a2a/{agent}"+a2asrv.WellKnownAgentCardPath, s.serveCard)
 	mux.Handle("POST /a2a/{agent}/{$}", s.authenticate(a2asrv.NewJSONRPCHandler(h)))
 	mux.Handle("POST /a2a/{agent}/v0.3/{$}", s.authenticate(a2av0.NewJSONRPCHandler(h)))
+	mux.HandleFunc("POST /a2a/{agent}/invite", s.serveInvite)
 	return mux
 }
 
@@ -92,7 +93,7 @@ func (s *Server) extendedCard(ctx context.Context) (*a2a.AgentCard, error) {
 	}
 	agent, err := s.backend.GetAgent(ctx, p.Agent)
 	if err != nil {
-		return nil, fmt.Errorf("load agent %s: %w", p.Agent, err)
+		return nil, fmt.Errorf("load agent '%s': %w", p.Agent, err)
 	}
 	return s.card(agent, true), nil
 }

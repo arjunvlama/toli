@@ -94,6 +94,16 @@ var migrations = []string{
 	// Where to push an agent's notifications when it has no harness session
 	// (set by its human). JSON Notify; NULL = none.
 	`ALTER TABLE agents ADD COLUMN notify TEXT`,
+
+	// Invites (toli peer invite). A used one is kept until it expires, so an
+	// accept can be retried.
+	`CREATE TABLE invites (
+		token_hash  TEXT PRIMARY KEY,            -- hash of the token the invite gives
+		agent       TEXT NOT NULL REFERENCES agents(name) ON DELETE CASCADE,
+		name        TEXT NOT NULL,               -- the peer's name, once accepted
+		expires_at  INTEGER NOT NULL,            -- unix seconds
+		used        INTEGER NOT NULL DEFAULT 0,  -- 1 once accepted
+		peer_id     INTEGER REFERENCES peers(id) ON DELETE SET NULL)  -- the peer it made`,
 }
 
 // scanner is what *sql.Row and *sql.Rows have in common, so one scan

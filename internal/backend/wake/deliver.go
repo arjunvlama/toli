@@ -109,7 +109,7 @@ var pushTimeout = 30 * time.Second
 func (s *Service) push(ctx context.Context, agent, text string) error {
 	a, err := s.store.GetAgent(ctx, agent)
 	if err != nil {
-		return fmt.Errorf("load agent %s: %w", agent, err)
+		return fmt.Errorf("load agent '%s': %w", agent, err)
 	}
 	n := a.Notify
 	if n == nil {
@@ -133,7 +133,7 @@ func (s *Service) push(ctx context.Context, agent, text string) error {
 		err = send()
 	}
 	if err != nil {
-		return fmt.Errorf("push to %s's %s: %w", agent, to, err)
+		return fmt.Errorf("push to %s of agent '%s': %w", to, agent, err)
 	}
 	slog.Info("notification pushed", "agent", agent, "to", to)
 	return nil

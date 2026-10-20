@@ -50,7 +50,7 @@ func (b *Backend) AddAgent(ctx context.Context, name, description string, skills
 		Card: a2a.AgentCard{Name: name, Description: description, Skills: skills},
 	}, hash)
 	if err != nil {
-		return "", fmt.Errorf("add agent %s: %w", name, err)
+		return "", fmt.Errorf("add agent '%s': %w", name, err)
 	}
 	return tok, nil
 }
@@ -64,12 +64,12 @@ func (b *Backend) UpdateAgent(ctx context.Context, name, description string, ski
 	}
 	a, err := b.store.GetAgent(ctx, name)
 	if err != nil {
-		return fmt.Errorf("load agent %s: %w", name, err)
+		return fmt.Errorf("load agent '%s': %w", name, err)
 	}
 	a.Card.Description = description
 	a.Card.Skills = skills
 	if err := b.store.UpdateAgentCard(ctx, name, a.Card); err != nil {
-		return fmt.Errorf("update agent %s: %w", name, err)
+		return fmt.Errorf("update agent '%s': %w", name, err)
 	}
 	return nil
 }
@@ -130,7 +130,7 @@ func (b *Backend) AgentByToken(ctx context.Context, tok string) (store.Agent, er
 		return store.Agent{}, err
 	}
 	if a.DisabledAt != nil {
-		return a, fmt.Errorf("agent %s: %w", a.Name, ErrAgentDisabled)
+		return a, fmt.Errorf("agent '%s': %w", a.Name, ErrAgentDisabled)
 	}
 	return a, nil
 }
@@ -140,7 +140,7 @@ func (b *Backend) AgentByToken(ctx context.Context, tok string) (store.Agent, er
 // being followed. Returns store.ErrNotFound if there's no such agent.
 func (b *Backend) DisableAgent(ctx context.Context, name string) error {
 	if err := b.store.SetAgentDisabled(ctx, name, true); err != nil {
-		return fmt.Errorf("disable agent %s: %w", name, err)
+		return fmt.Errorf("disable agent '%s': %w", name, err)
 	}
 	return nil
 }
@@ -149,7 +149,7 @@ func (b *Backend) DisableAgent(ctx context.Context, name string) error {
 // no such agent.
 func (b *Backend) EnableAgent(ctx context.Context, name string) error {
 	if err := b.store.SetAgentDisabled(ctx, name, false); err != nil {
-		return fmt.Errorf("enable agent %s: %w", name, err)
+		return fmt.Errorf("enable agent '%s': %w", name, err)
 	}
 	return nil
 }
@@ -160,7 +160,7 @@ func (b *Backend) EnableAgent(ctx context.Context, name string) error {
 func (b *Backend) RotateAgentToken(ctx context.Context, name string) (string, error) {
 	tok, hash := token.New()
 	if err := b.store.SetAgentTokenHash(ctx, name, hash); err != nil {
-		return "", fmt.Errorf("rotate token for agent %s: %w", name, err)
+		return "", fmt.Errorf("rotate token for agent '%s': %w", name, err)
 	}
 	return tok, nil
 }
@@ -191,7 +191,7 @@ func (b *Backend) SetAgentNotify(ctx context.Context, name, command, webhook str
 		n = &store.Notify{Webhook: webhook, Secret: secret}
 	}
 	if err := b.store.SetAgentNotify(ctx, name, n); err != nil {
-		return "", fmt.Errorf("set notify for agent %s: %w", name, err)
+		return "", fmt.Errorf("set notify for agent '%s': %w", name, err)
 	}
 	return secret, nil
 }
@@ -241,7 +241,7 @@ func (b *Backend) RemoveAgent(ctx context.Context, name string) error {
 		return b.store.RemoveAgent(ctx, name)
 	})
 	if err != nil {
-		return fmt.Errorf("remove agent %s: %w", name, err)
+		return fmt.Errorf("remove agent '%s': %w", name, err)
 	}
 	return nil
 }

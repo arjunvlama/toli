@@ -382,7 +382,7 @@ func TestDisabledAgentAndRotatedToken(t *testing.T) {
 	}
 	body, _ := io.ReadAll(resp.Body)
 	resp.Body.Close()
-	if resp.StatusCode != http.StatusUnauthorized || !strings.Contains(string(body), "agent backend: agent is disabled") {
+	if resp.StatusCode != http.StatusUnauthorized || !strings.Contains(string(body), "agent 'backend': agent is disabled") {
 		t.Fatalf("disabled agent: %d %q, want 401 saying it's disabled", resp.StatusCode, body)
 	}
 

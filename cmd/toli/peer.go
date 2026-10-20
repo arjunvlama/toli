@@ -12,6 +12,8 @@ import (
 )
 
 const peerUsage = `usage:
+  toli peer invite AGENT PEER
+  toli peer accept AGENT INVITE [--name NAME]
   toli peer add AGENT PEER CARD_URL [--token TOKEN]
   toli peer token AGENT PEER TOKEN
   toli peer new-token AGENT PEER
@@ -24,9 +26,44 @@ func runPeer(args []string) error {
 	if len(args) < 1 {
 		return errors.New(peerUsage)
 	}
+	if isHelp(args) {
+		fmt.Println(peerUsage)
+		return nil
+	}
 	ctx := context.Background()
 	cmd, args := args[0], args[1:]
 	switch {
+	case cmd == "invite" && len(args) == 2:
+		c, err := adminClient()
+		if err != nil {
+			return err
+		}
+		agent, peer := args[0], args[1]
+		inv, err := c.CreateInvite(ctx, api.CreateInviteRequest{Agent: agent, Name: peer})
+		if err != nil {
+			return err
+		}
+		ok("Created an invite for peer '%s'. It works once, within 24 hours.", peer)
+		fmt.Printf("\nTo accept it, run this where peer '%s' runs:\n\n    toli peer accept <agent> %s\n\n", peer, inv.Invite)
+		fmt.Printf("Send it privately: whoever has it can pair with agent '%s'.\n", agent)
+		return nil
+	case cmd == "accept" && len(args) >= 2:
+		fs := flag.NewFlagSet("peer accept", flag.ContinueOnError)
+		name := fs.String("name", "", "what to call the inviting agent (default: its own name)")
+		if err := fs.Parse(args[2:]); err != nil {
+			return err
+		}
+		c, err := adminClient()
+		if err != nil {
+			return err
+		}
+		agent := args[0]
+		acc, err := c.AcceptInvite(ctx, api.AcceptInviteRequest{Agent: agent, Invite: args[1], Name: *name})
+		if err != nil {
+			return err
+		}
+		ok("Paired agent '%s' with peer '%s'.", agent, acc.Peer.Name)
+		return nil
 	case cmd == "add" && len(args) >= 3:
 		fs := flag.NewFlagSet("peer add", flag.ContinueOnError)
 		token := fs.String("token", "", "the token the peer gave you, if you have it")
@@ -42,11 +79,11 @@ func runPeer(args []string) error {
 		if err != nil {
 			return err
 		}
-		ok("Added %s as a peer of %s.", peer, agent)
+		ok("Added peer '%s' to agent '%s'.", peer, agent)
 		fmt.Printf("token  %s\n", added.Token)
-		fmt.Printf("Give this token to %s. Copy it now: you won't be able to see it again.\n", peer)
+		fmt.Printf("Give this token to peer '%s'. Copy it now: you won't be able to see it again.\n", peer)
 		if *token == "" {
-			fmt.Printf("Next: when %s gives you its token, run toli peer token %s %s <token>\n", peer, agent, peer)
+			fmt.Printf("Next: when peer '%s' gives you its token, run `toli peer token %s %s <token>`.\n", peer, agent, peer)
 		}
 		return nil
 	case cmd == "token" && len(args) == 3:
@@ -57,7 +94,7 @@ func runPeer(args []string) error {
 		if err := c.SetPeerToken(ctx, p.ID, args[2]); err != nil {
 			return err
 		}
-		ok("Set %s's token for %s.", p.Name, args[0])
+		ok("Set the token from peer '%s' for agent '%s'.", p.Name, args[0])
 		return nil
 	case cmd == "new-token" && len(args) == 2:
 		c, p, err := peerClient(ctx, args[0], args[1])
@@ -68,9 +105,9 @@ func runPeer(args []string) error {
 		if err != nil {
 			return err
 		}
-		ok("Made a new token for %s. The old one no longer works.", p.Name)
+		ok("Made a new token for peer '%s'. The old one no longer works.", p.Name)
 		fmt.Printf("token  %s\n", rotated.Token)
-		fmt.Printf("Give it to %s. Copy it now: you won't be able to see it again.\n", p.Name)
+		fmt.Printf("Give it to peer '%s'. Copy it now: you won't be able to see it again.\n", p.Name)
 		return nil
 	case cmd == "remove" && len(args) >= 2:
 		yes, err := parseYes("peer remove", args[2:])
@@ -87,7 +124,7 @@ func runPeer(args []string) error {
 		if err := c.RemovePeer(ctx, p.ID); err != nil {
 			return err
 		}
-		ok("Removed %s from %s's peers.", p.Name, args[0])
+		ok("Removed peer '%s' from agent '%s'.", p.Name, args[0])
 		return nil
 	case cmd == "list" && len(args) == 1:
 		c, err := adminClient()
@@ -128,5 +165,5 @@ func peerClient(ctx context.Context, agent, name string) (*api.Client, api.PeerI
 			return c, p, nil
 		}
 	}
-	return nil, api.PeerInfo{}, fmt.Errorf("agent %s has no peer %s", agent, name)
+	return nil, api.PeerInfo{}, fmt.Errorf("agent '%s' has no peer '%s'", agent, name)
 }

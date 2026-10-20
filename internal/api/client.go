@@ -84,6 +84,23 @@ func (c *Client) AddPeer(ctx context.Context, req AddPeerRequest) (AddPeerRespon
 	return resp, nil
 }
 
+func (c *Client) CreateInvite(ctx context.Context, req CreateInviteRequest) (CreateInviteResponse, error) {
+	var resp CreateInviteResponse
+	err := c.do(ctx, "POST", "/v1/invites", req, &resp)
+	return resp, err
+}
+
+// AcceptInvite waits longer than other calls: the daemon calls the inviting
+// daemon, which fetches our card.
+func (c *Client) AcceptInvite(ctx context.Context, req AcceptInviteRequest) (AcceptInviteResponse, error) {
+	slow, hc := *c, *c.http
+	hc.Timeout = time.Minute
+	slow.http = &hc
+	var resp AcceptInviteResponse
+	err := slow.do(ctx, "POST", "/v1/invites/accept", req, &resp)
+	return resp, err
+}
+
 func (c *Client) ListPeers(ctx context.Context, agent string) ([]PeerInfo, error) {
 	var resp ListPeersResponse
 	if err := c.do(ctx, "GET", "/v1/peers?agent="+url.QueryEscape(agent), nil, &resp); err != nil {

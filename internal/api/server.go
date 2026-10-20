@@ -38,6 +38,8 @@ func New(b *backend.Backend, adminHash, publicURL string) http.Handler {
 	mux.HandleFunc("DELETE /v1/peers/{id}", s.removePeer)
 	mux.HandleFunc("PUT /v1/peers/{id}/token", s.setPeerToken)     // the token the peer gave us
 	mux.HandleFunc("POST /v1/peers/{id}/token", s.rotatePeerToken) // a new token we issue the peer
+	mux.HandleFunc("POST /v1/invites", s.createInvite)
+	mux.HandleFunc("POST /v1/invites/accept", s.acceptInvite)
 	mux.HandleFunc("GET /v1/tasks", s.listTasks)
 	mux.HandleFunc("GET /v1/tasks/{id}", s.getTask)
 	mux.HandleFunc("POST /v1/tasks/{id}/cancel", s.cancelTask)

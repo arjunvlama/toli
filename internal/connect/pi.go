@@ -36,7 +36,7 @@ func (p pi) connect(o Options) ([]Done, error) {
 	}
 	extension := p.extension(o)
 	if o.Scope == Project && o.Run(o.Dir, "git", "ls-files", "--error-unmatch", extension) == nil {
-		return nil, fmt.Errorf("git tracks %s, so the agent's token would be committed; use --scope user", extension)
+		return nil, fmt.Errorf("git tracks %s, so the agent's token would be committed; use `--scope user`", extension)
 	}
 	if err := os.MkdirAll(filepath.Dir(extension), 0o755); err != nil {
 		return nil, err
@@ -56,7 +56,7 @@ func (p pi) connect(o Options) ([]Done, error) {
 			done = append(done, Done{File: ".gitignore"})
 		}
 	}
-	return append(done, Done{Next: "start pi (trust the folder if it asks), or run /reload in a running session."}), nil
+	return append(done, Done{Next: "start pi (trust the folder if it asks), or run `/reload` in a running session."}), nil
 }
 
 // disconnect deletes toli's extension.
@@ -67,6 +67,6 @@ func (p pi) disconnect(o Options) ([]Done, error) {
 	}
 	return []Done{
 		{File: extension},
-		{Next: "run /reload in running sessions, or restart them; they stay connected until then."},
+		{Next: "run `/reload` in running sessions, or restart them; they stay connected until then."},
 	}, nil
 }

@@ -68,10 +68,10 @@ func (s *Server) addPeer(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, err.Error())
 		return
 	case errors.Is(err, store.ErrExists):
-		writeError(w, http.StatusConflict, "agent "+req.Agent+" already has a peer named "+req.Name)
+		writeError(w, http.StatusConflict, "agent '"+req.Agent+"' already has a peer '"+req.Name+"'")
 		return
 	case errors.Is(err, store.ErrNotFound):
-		writeError(w, http.StatusNotFound, "no agent named "+req.Agent)
+		writeError(w, http.StatusNotFound, "no agent '"+req.Agent+"'")
 		return
 	case err != nil:
 		writeError(w, http.StatusBadGateway, err.Error()) // most likely the peer's card couldn't be fetched

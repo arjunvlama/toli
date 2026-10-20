@@ -137,12 +137,12 @@ func scanAgent(sc scanner) (Agent, error) {
 		return Agent{}, err
 	}
 	if err := json.Unmarshal([]byte(card), &a.Card); err != nil {
-		return Agent{}, fmt.Errorf("decode card for agent %s: %w", a.Name, err)
+		return Agent{}, fmt.Errorf("decode card for agent '%s': %w", a.Name, err)
 	}
 	if notify.Valid {
 		a.Notify = &Notify{}
 		if err := json.Unmarshal([]byte(notify.String), a.Notify); err != nil {
-			return Agent{}, fmt.Errorf("decode notify for agent %s: %w", a.Name, err)
+			return Agent{}, fmt.Errorf("decode notify for agent '%s': %w", a.Name, err)
 		}
 	}
 	if disabled.Valid {

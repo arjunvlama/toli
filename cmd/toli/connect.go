@@ -75,9 +75,9 @@ func runConnect(args []string, disconnect bool) error {
 	if err != nil {
 		return err
 	}
-	summary := fmt.Sprintf(verb, harnessName(harness), agent)
+	summary := fmt.Sprintf(verb, harnessName(harness), "agent '"+agent+"'")
 	if agent == "?" { // the MCP URL didn't name an agent (disconnecting anyway)
-		summary = strings.TrimSuffix(summary, " from ?")
+		summary = strings.TrimSuffix(summary, " from agent '?'")
 	}
 	printConnect(summary, harness, *scope, dir, home, done)
 	return nil

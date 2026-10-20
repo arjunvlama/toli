@@ -23,7 +23,7 @@ import (
 
 // Options configure a Pool.
 type Options struct {
-	CheckEvery time.Duration // how often Run re-fetches every peer's card (default 5m)
+	CheckEvery time.Duration // how often Run re-fetches every peer's card (default 30s)
 	// OnCardChange saves a peer's new card when a check finds it changed.
 	OnCardChange func(ctx context.Context, peerID int64, card *a2a.AgentCard) error
 }
@@ -57,7 +57,7 @@ type entry struct {
 // New builds a client for each peer from its saved card.
 func New(ctx context.Context, peers []store.Peer, opts Options) *Pool {
 	if opts.CheckEvery == 0 {
-		opts.CheckEvery = 5 * time.Minute
+		opts.CheckEvery = 30 * time.Second
 	}
 
 	p := &Pool{
@@ -229,7 +229,7 @@ func (p *Pool) check(ctx context.Context, peerID int64) error {
 
 	public, err := FetchCard(ctx, e.peer.URL)
 	if err != nil {
-		err = fmt.Errorf("fetch agent card for peer %s from %s: %w", e.peer.Name, e.peer.URL, err)
+		err = fmt.Errorf("fetch agent card for peer '%s' from %s: %w", e.peer.Name, e.peer.URL, err)
 		e.status.LastError, e.status.LastErrorAt = err, time.Now()
 		return err
 	}
@@ -237,7 +237,7 @@ func (p *Pool) check(ctx context.Context, peerID int64) error {
 		// The peer's interface changed, so it needs a new client.
 		c, err := NewClient(ctx, public, e.peer.OutboundToken)
 		if err != nil {
-			err = fmt.Errorf("connect to peer %s with its new agent card: %w", e.peer.Name, err)
+			err = fmt.Errorf("connect to peer '%s' with its new agent card: %w", e.peer.Name, err)
 			e.status.LastError, e.status.LastErrorAt = err, time.Now()
 			return err
 		}
@@ -250,24 +250,24 @@ func (p *Pool) check(ctx context.Context, peerID int64) error {
 	case public.Capabilities.ExtendedAgentCard && e.peer.OutboundToken != "":
 		card, err = e.client.GetExtendedAgentCard(ctx, &a2a.GetExtendedAgentCardRequest{})
 		if err != nil {
-			err = fmt.Errorf("peer %s: get extended agent card: %w", e.peer.Name, err)
+			err = fmt.Errorf("peer '%s': get extended agent card: %w", e.peer.Name, err)
 			e.status.LastError, e.status.LastErrorAt = err, time.Now()
 			return err
 		}
 		if err := e.client.UpdateCard(card); err != nil {
-			err = fmt.Errorf("peer %s: extended agent card: %w", e.peer.Name, err)
+			err = fmt.Errorf("peer '%s': extended agent card: %w", e.peer.Name, err)
 			e.status.LastError, e.status.LastErrorAt = err, time.Now()
 			return err
 		}
 	case e.peer.OutboundToken == "" && len(public.SecurityRequirements) > 0:
 		e.status.LastError, e.status.LastErrorAt = ErrNoToken, time.Now()
-		return fmt.Errorf("peer %s: %w", e.peer.Name, ErrNoToken)
+		return fmt.Errorf("peer '%s': %w", e.peer.Name, ErrNoToken)
 	}
 
 	if !sameCard(e.peer.Card, card) && p.opts.OnCardChange != nil {
 		if err := p.opts.OnCardChange(ctx, peerID, card); err != nil {
 			e.status = Status{LastSeen: time.Now()}
-			return fmt.Errorf("save new agent card for peer %s: %w", e.peer.Name, err)
+			return fmt.Errorf("save new agent card for peer '%s': %w", e.peer.Name, err)
 		}
 	}
 	e.peer.Card = card

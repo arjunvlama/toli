@@ -39,12 +39,12 @@ func (c opencode) connect(o Options) ([]Done, error) {
 	if o.Scope == Project {
 		for _, f := range []string{config, plugin} {
 			if o.Run(o.Dir, "git", "ls-files", "--error-unmatch", f) == nil {
-				return nil, fmt.Errorf("git tracks %s, so the agent's token would be committed; use --scope user", f)
+				return nil, fmt.Errorf("git tracks %s, so the agent's token would be committed; use `--scope user`", f)
 			}
 		}
 	}
 	if _, err := os.Stat(strings.TrimSuffix(config, ".json") + ".jsonc"); err == nil {
-		return nil, fmt.Errorf("%s exists; toli connect only edits opencode.json (add the toli MCP server there by hand)", strings.TrimSuffix(config, ".json")+".jsonc")
+		return nil, fmt.Errorf("%s exists; `toli connect` only edits opencode.json (add the toli MCP server there by hand)", strings.TrimSuffix(config, ".json")+".jsonc")
 	}
 
 	if err := os.MkdirAll(filepath.Dir(plugin), 0o755); err != nil {

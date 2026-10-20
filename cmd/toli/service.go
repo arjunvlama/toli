@@ -21,7 +21,7 @@ var serviceVerbs = []string{"install", "uninstall", "start", "stop", "restart", 
 // this user (see internal/service).
 func runService(verb string, args []string) error {
 	if verb != "install" && len(args) > 0 {
-		return fmt.Errorf("toli daemon %s takes no arguments", verb)
+		return fmt.Errorf("`toli daemon %s` takes no arguments", verb)
 	}
 	if verb == "install" {
 		// Check them now, not when the service starts.
@@ -63,7 +63,7 @@ func runService(verb string, args []string) error {
 		ok("Restarted the toli daemon.")
 	case "status":
 		installed, where := m.Installed()
-		inst := "no (run toli daemon install)"
+		inst := "no (run `toli daemon install`)"
 		if installed {
 			inst = "yes (" + where + ")"
 		}
@@ -81,7 +81,7 @@ func serviceManager(args []string) (service.Manager, error) {
 		return nil, err
 	}
 	if strings.Contains(exe, "go-build") {
-		return nil, fmt.Errorf("%s is a temporary build (go run); install from a built toli binary", exe)
+		return nil, fmt.Errorf("%s is a temporary build (`go run`); install from a built toli binary", exe)
 	}
 	home, err := os.UserHomeDir()
 	if err != nil {
