@@ -44,16 +44,16 @@ jobs:
       - name: Install, then the daemon runs
         run: |
           "$HOME/toli" daemon install
-          for i in $(seq 1 15); do "$HOME/toli" daemon status | grep -q "running: yes" && break; sleep 1; done
+          for i in $(seq 1 15); do "$HOME/toli" daemon status | grep -Eq "running +yes" && break; sleep 1; done
           "$HOME/toli" daemon status
-          "$HOME/toli" daemon status | grep -q "running: yes"
+          "$HOME/toli" daemon status | grep -Eq "running +yes"
       - name: It restarts after a crash
         run: |
           pid=$(systemctl --user show -p MainPID --value toli)
           kill -9 "$pid"
           for i in $(seq 1 30); do
             now=$(systemctl --user show -p MainPID --value toli)
-            [ "$now" != 0 ] && [ "$now" != "$pid" ] && "$HOME/toli" daemon status | grep -q "running: yes" && exit 0
+            [ "$now" != 0 ] && [ "$now" != "$pid" ] && "$HOME/toli" daemon status | grep -Eq "running +yes" && exit 0
             sleep 1
           done
           echo "not restarted"; exit 1
@@ -62,7 +62,7 @@ jobs:
       - name: Uninstall
         run: |
           "$HOME/toli" daemon uninstall
-          "$HOME/toli" daemon status | grep -q "installed: no"
+          "$HOME/toli" daemon status | grep -Eq "installed +no"
 
   # toli daemon install as a Task Scheduler task. A runner has no logon to
   # trigger it, so this checks install, a manual start, the log file, and
@@ -80,15 +80,15 @@ jobs:
           & "$env:USERPROFILE\toli.exe" daemon install
           if ($LASTEXITCODE -ne 0) { exit 1 }
           foreach ($i in 1..20) {
-            if ((& "$env:USERPROFILE\toli.exe" daemon status) -match "running: yes") { break }
+            if ((& "$env:USERPROFILE\toli.exe" daemon status) -match "running\s+yes") { break }
             Start-Sleep 1
           }
           & "$env:USERPROFILE\toli.exe" daemon status
-          if (-not ((& "$env:USERPROFILE\toli.exe" daemon status) -match "running: yes")) { exit 1 }
+          if (-not ((& "$env:USERPROFILE\toli.exe" daemon status) -match "running\s+yes")) { exit 1 }
       - name: Logs
         run: Get-Content "$env:LOCALAPPDATA\toli\daemon.log"
       - name: Uninstall
         run: |
           & "$env:USERPROFILE\toli.exe" daemon uninstall
           if ($LASTEXITCODE -ne 0) { exit 1 }
-          if (-not ((& "$env:USERPROFILE\toli.exe" daemon status) -match "installed: no")) { exit 1 }
+          if (-not ((& "$env:USERPROFILE\toli.exe" daemon status) -match "installed\s+no")) { exit 1 }
