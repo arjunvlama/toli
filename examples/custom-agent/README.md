@@ -2,7 +2,7 @@
 
 These examples are for a harness not listed in `toli connect`. Your agent uses toli's tools through its MCP client, pointed at the agent's MCP URL (`toli agent new-token <agent>` prints one). These scripts show the other half: getting notified when work arrives.
 
-Both scripts need Python 3.9 or later and nothing else. Each calls `on_notification` with each notification; make it pass the notification to your agent the way a user's message reaches it.
+The pull examples need Python 3.9 or later, or Node 22.18 or later for the TypeScript one, and nothing else. Each calls `on_notification` with each notification; make it pass the notification to your agent the way a user's message reaches it.
 
 A notification is a short message such as `toli: new task from alice: "Add a /users endpoint". Call list_available_tasks.` Your agent reads it and does the work with toli's tools.
 
@@ -23,6 +23,21 @@ If another listener starts for the same agent, this one stops. To try it on its 
 
 ```sh
 TOLI_MCP_URL=http://127.0.0.1:7420/mcp/<token> python3 pull.py
+```
+
+`pull.ts` is the same listener in TypeScript for Node. Node runs the file as-is, so there is nothing to install or compile:
+
+```ts
+import { listen } from "./pull.ts";
+
+const listener = listen(mcpUrl, (text) => myAgent.sendUserMessage(text));
+myAgent.addContext(listener.context); // work that arrived while it wasn't running
+...
+listener.stop();                      // when your agent exits
+```
+
+```sh
+TOLI_MCP_URL=http://127.0.0.1:7420/mcp/<token> node pull.ts
 ```
 
 ## Push
