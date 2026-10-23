@@ -77,6 +77,10 @@ func runDaemon(args []string) error {
 		detachConsole()
 	}
 
+	if daemonAlreadyRunning(*adminListen) {
+		return fmt.Errorf("a toli daemon is already running (%s); `toli daemon status` shows it and `toli daemon restart` restarts it", *adminListen)
+	}
+
 	home, err := homeDir()
 	if err != nil {
 		return err
@@ -138,8 +142,20 @@ func runDaemon(args []string) error {
 	defer stop()
 
 	g, ctx := errgroup.WithContext(ctx)
+	// Bind the listeners before starting background work, so a bind failure
+	// stops with a clear error instead of racing peer checks that log warnings.
+	listeners := make([]net.Listener, len(servers))
 	for i, srv := range servers {
-		g.Go(func() error { return serve(srv, serving[i]) })
+		ln, err := net.Listen("tcp", srv.Addr)
+		if err != nil {
+			return fmt.Errorf("listen on %s: %w", srv.Addr, err)
+		}
+		listeners[i] = ln
+		slog.Info("listening", "for", serving[i], "addr", ln.Addr().String())
+	}
+	for i, srv := range servers {
+		srv, ln := srv, listeners[i]
+		g.Go(func() error { return serveOn(srv, ln) })
 	}
 	g.Go(func() error {
 		return b.Run(ctx)
@@ -163,17 +179,24 @@ func runDaemon(args []string) error {
 	return nil
 }
 
-// serve serves srv, saying what for once it's listening.
-func serve(srv *http.Server, what string) error {
-	ln, err := net.Listen("tcp", srv.Addr)
-	if err != nil {
-		return fmt.Errorf("listen on %s: %w", srv.Addr, err)
-	}
-	slog.Info("listening", "for", what, "addr", ln.Addr().String())
+// serveOn serves srv on an already-bound listener.
+func serveOn(srv *http.Server, ln net.Listener) error {
 	if err := srv.Serve(ln); !errors.Is(err, http.ErrServerClosed) {
 		return err
 	}
 	return nil
+}
+
+// daemonAlreadyRunning reports whether something already answers on the admin
+// address, so a second `toli daemon` can stop with a clear message instead of
+// failing to bind and printing peer-check warnings.
+func daemonAlreadyRunning(adminListen string) bool {
+	c, err := net.DialTimeout("tcp", adminListen, 300*time.Millisecond)
+	if err != nil {
+		return false
+	}
+	_ = c.Close()
+	return true
 }
 
 // version is toli's module version ("(devel)" when built from a checkout).
